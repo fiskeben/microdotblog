@@ -28,6 +28,12 @@ type Post struct {
 	} `json:"_microblog"`
 }
 
+// Photo represents a photo.
+// TODO: implement as a io.Reader (or ReadCloser)
+type Photo struct {
+	path string
+}
+
 // Author is a represetation of the author of a post.
 type Author struct {
 	Name                string `json:"name"`
@@ -88,4 +94,10 @@ type APIClient interface {
 	// Unfollow will remove the user with the specified username from the list
 	// of users the current user follows.
 	Unfollow(username string) error
+
+	// Post posts a new update to the blog.
+	Post(message string) (*Post, error)
+
+	// PostPhoto posts a new update including a photo.
+	PostPhoto(message string, photo Photo) (*Post, error)
 }

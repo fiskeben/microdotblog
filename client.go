@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 // NewAPIClient creates a new client with a default HTTP client.
@@ -122,15 +123,60 @@ func (a apiClient) Reply(ID int64, message string) (*Post, error) {
 }
 
 func (a apiClient) DeletePost(ID int64) error {
+	url := fmt.Sprintf("https://micro.blog/posts/%d", ID)
+	if err := a.httpClient.delete(url); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (a apiClient) Follow(username string) error {
+	url := fmt.Sprintf("https://micro.blog/users/follow?username=%s", username)
+	if _, err := a.httpClient.postAndRead(url, nil); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (a apiClient) Unfollow(username string) error {
+	url := fmt.Sprintf("https://micro.blog/users/unfollow?username=%s", username)
+	if _, err := a.httpClient.postAndRead(url, nil); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (a apiClient) Post(message string) (*Post, error) {
+	endpoint := "https://micro.blog/micropub"
+
+	data := url.Values{}
+	data.Set("h", "entry")
+	data.Set("content", message)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Authorization", a.httpClient.token)
+
+	res, err := a.httpClient.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if err = newAPIError(res.StatusCode, res.Body); err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Response %s\n", string(bytes))
+	return &Post{}, nil
+}
+
+func (a apiClient) PostPhoto(message string, photo Photo) (*Post, error) {
+	return &Post{}, nil
 }
 
 func (a aClient) getAndRead(url string) ([]byte, error) {
