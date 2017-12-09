@@ -1,6 +1,7 @@
 package microdotblog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -98,10 +99,21 @@ func (a apiClient) Check(sinceID int64) (*Check, error) {
 }
 
 func (a apiClient) Favourite(ID int64) error {
+	url := fmt.Sprintf("https://micro.blog/posts/favorites?id=%d", ID)
+
+	_, err := a.httpClient.postAndRead(url, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (a apiClient) Unfavourite(ID int64) error {
+	url := fmt.Sprintf("https://micro.blog/posts/favorites/%d", ID)
+	if err := a.httpClient.delete(url); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -137,6 +149,48 @@ func (a aClient) getAndRead(url string) ([]byte, error) {
 	defer res.Body.Close()
 
 	return ioutil.ReadAll(res.Body)
+}
+
+func (a aClient) postAndRead(url string, payload interface{}) ([]byte, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", a.token)
+
+	res, err := a.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = newAPIError(res.StatusCode, res.Body); err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	return ioutil.ReadAll(res.Body)
+}
+
+func (a aClient) delete(url string) error {
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	res, err := a.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = newAPIError(res.StatusCode, res.Body); err != nil {
+		return err
+	}
+	return nil
 }
 
 func feedFromResponse(data []byte) (*Feed, error) {
