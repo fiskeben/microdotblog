@@ -31,9 +31,11 @@ func main() {
 
 ## TODO
 
-* [ ] Implement remaining methods.
-* [ ] Testing. Currently only have tests that go directly to micro.blog.
-* [ ] Better errors. Right now raw http and unmarshalling errors are returned.
+* [x] Implement remaining methods.
+* [x] Testing. Currently only have tests that go directly to micro.blog.
+* [x] Better errors. Right now raw http and unmarshalling errors are returned.
+* [ ] Even better errors. Make it easier to test the type of error.
+* [ ] Fix some issues with `DELETE` method.
 
 ## Follow me
 
