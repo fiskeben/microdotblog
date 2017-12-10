@@ -192,6 +192,10 @@ func (a aClient) getAndRead(url string) ([]byte, error) {
 		return nil, err
 	}
 
+	if err = newAPIError(res.StatusCode, res.Body); err != nil {
+		return nil, err
+	}
+
 	defer res.Body.Close()
 
 	return ioutil.ReadAll(res.Body)

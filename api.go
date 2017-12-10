@@ -9,8 +9,15 @@ type Feed struct {
 	HomepageURL         string `json:"home_page_url"`
 	FeedURL             string `json:"feed_url"`
 	Items               []Post `json:"items"`
+	Author              Author `json:"author"`
 	MicroblogProperties struct {
-		About string `json:"about"`
+		About          string `json:"about"`
+		ID             int64  `json:"id,string"`
+		Username       string `json:"username"`
+		Bio            string `json:"bio"`
+		IsFollowing    bool   `json:"is_following"`
+		IsYou          bool   `json:"is_you"`
+		FollowingCount int    `json:"following_count"`
 	} `json:"_microblog"`
 }
 

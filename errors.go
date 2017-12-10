@@ -112,19 +112,19 @@ func newAPIError(status int, body io.ReadCloser) error {
 
 	var err httpError
 
-	if status == 401 {
+	switch status {
+	case 401:
 		err = NotAuthorized{msg: "you are not authorized to access this resource"}
-	}
-	if status == 403 {
+	case 403:
 		err = Forbidden{msg: "insufficient privileges"}
-	}
-	if status == 404 {
+	case 404:
 		err = NotFound{msg: "the resource was not found"}
-	}
-	if status >= 500 {
-		err = ServerError{msg: "the server returned an error", StatusCode: status}
-	} else if status >= 300 {
-		err = ClientError{msg: "client error", StatusCode: status}
+	default:
+		if status >= 500 {
+			err = ServerError{msg: "the server returned an error", StatusCode: status}
+		} else if status >= 300 {
+			err = ClientError{msg: "client error", StatusCode: status}
+		}
 	}
 
 	if err != nil {
