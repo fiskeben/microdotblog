@@ -58,6 +58,16 @@ type Check struct {
 	CheckSeconds int `json:"check_seconds"`
 }
 
+// User represents a single user
+type User struct {
+	Name        string `json:"name"`
+	IsFollowing bool   `json:"is_following"`
+	IsYou       bool   `json:"is_you"`
+	Username    string `json:"username"`
+	URL         string `json:"url"`
+	Avatar      string `json:"avatar"`
+}
+
 // APIClient gives access to the API.
 type APIClient interface {
 	// GetPosts gets all posts from a feed.
@@ -101,6 +111,9 @@ type APIClient interface {
 	// Unfollow will remove the user with the specified username from the list
 	// of users the current user follows.
 	Unfollow(username string) error
+
+	// Followers lists the users the given user follows.
+	Followers(username string) ([]User, error)
 
 	// Post posts a new update to the blog.
 	Post(message string) (*Post, error)

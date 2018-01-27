@@ -146,6 +146,22 @@ func (a apiClient) Unfollow(username string) error {
 	return nil
 }
 
+func (a apiClient) Followers(username string) ([]User, error) {
+	url := fmt.Sprintf("https://micro.blog/users/following/%s", username)
+	bytes, err := a.httpClient.getAndRead(url)
+	if err != nil {
+		return nil, err
+	}
+
+	var users = []User{}
+	err = json.Unmarshal(bytes, &users)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (a apiClient) Post(message string) (*Post, error) {
 	endpoint := "https://micro.blog/micropub"
 
