@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 // NewAPIClient creates a new client with a default HTTP client.
@@ -68,8 +69,8 @@ func (a apiClient) Discover() (*Feed, error) {
 }
 
 func (a apiClient) GetUserPosts(username string) (*Feed, error) {
-	url := fmt.Sprintf("https://micro.blog/posts/%s", username)
-	data, err := a.httpClient.getAndRead(url)
+	endpoint := fmt.Sprintf("https://micro.blog/posts/%s", username)
+	data, err := a.httpClient.getAndRead(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +78,8 @@ func (a apiClient) GetUserPosts(username string) (*Feed, error) {
 }
 
 func (a apiClient) GetConversation(ID int64) (*Feed, error) {
-	url := fmt.Sprintf("https://micro.blog/posts/conversation?id=%d", ID)
-	data, err := a.httpClient.getAndRead(url)
+	endpoint := fmt.Sprintf("https://micro.blog/posts/conversation?id=%d", ID)
+	data, err := a.httpClient.getAndRead(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +87,8 @@ func (a apiClient) GetConversation(ID int64) (*Feed, error) {
 }
 
 func (a apiClient) Check(sinceID int64) (*Check, error) {
-	url := fmt.Sprintf("https://micro.blog/posts/check?since_id=%d", sinceID)
-	data, err := a.httpClient.getAndRead(url)
+	endpoint := fmt.Sprintf("https://micro.blog/posts/check?since_id=%d", sinceID)
+	data, err := a.httpClient.getAndRead(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +101,9 @@ func (a apiClient) Check(sinceID int64) (*Check, error) {
 }
 
 func (a apiClient) Favourite(ID int64) error {
-	url := fmt.Sprintf("https://micro.blog/posts/favorites?id=%d", ID)
+	endpoint := fmt.Sprintf("https://micro.blog/posts/favorites?id=%d", ID)
 
-	_, err := a.httpClient.postAndRead(url, nil)
+	_, err := a.httpClient.postAndRead(endpoint, nil)
 	if err != nil {
 		return err
 	}
@@ -111,44 +112,49 @@ func (a apiClient) Favourite(ID int64) error {
 }
 
 func (a apiClient) Unfavourite(ID int64) error {
-	url := fmt.Sprintf("https://micro.blog/posts/favorites/%d", ID)
-	if err := a.httpClient.delete(url); err != nil {
+	endpoint := fmt.Sprintf("https://micro.blog/posts/favorites/%d", ID)
+	if err := a.httpClient.delete(endpoint); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a apiClient) Reply(ID int64, message string) (*Post, error) {
-	return &Post{}, nil
+	endpoint := fmt.Sprintf("https://micro.blog/posts/reply")
+	data := url.Values{}
+	data.Add("id", strconv.FormatInt(ID, 10))
+	data.Add("text", message)
+
+	return a.sendPost(endpoint, data.Encode())
 }
 
 func (a apiClient) DeletePost(ID int64) error {
-	url := fmt.Sprintf("https://micro.blog/posts/%d", ID)
-	if err := a.httpClient.delete(url); err != nil {
+	endpoint := fmt.Sprintf("https://micro.blog/posts/%d", ID)
+	if err := a.httpClient.delete(endpoint); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a apiClient) Follow(username string) error {
-	url := fmt.Sprintf("https://micro.blog/users/follow?username=%s", username)
-	if _, err := a.httpClient.postAndRead(url, nil); err != nil {
+	endpoint := fmt.Sprintf("https://micro.blog/users/follow?username=%s", username)
+	if _, err := a.httpClient.postAndRead(endpoint, nil); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a apiClient) Unfollow(username string) error {
-	url := fmt.Sprintf("https://micro.blog/users/unfollow?username=%s", username)
-	if _, err := a.httpClient.postAndRead(url, nil); err != nil {
+	endpoint := fmt.Sprintf("https://micro.blog/users/unfollow?username=%s", username)
+	if _, err := a.httpClient.postAndRead(endpoint, nil); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a apiClient) Followers(username string) ([]User, error) {
-	url := fmt.Sprintf("https://micro.blog/users/following/%s", username)
-	bytes, err := a.httpClient.getAndRead(url)
+	endpoint := fmt.Sprintf("https://micro.blog/users/following/%s", username)
+	bytes, err := a.httpClient.getAndRead(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +175,11 @@ func (a apiClient) Post(message string) (*Post, error) {
 	data.Set("h", "entry")
 	data.Set("content", message)
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	return a.sendPost(endpoint, data.Encode())
+}
+
+func (a apiClient) sendPost(endpoint, payload string) (*Post, error) {
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(payload))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Authorization", a.httpClient.token)
 
@@ -182,12 +192,14 @@ func (a apiClient) Post(message string) (*Post, error) {
 	}
 
 	defer res.Body.Close()
-	bytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
 
-	fmt.Printf("Response %s\n", string(bytes))
+	// Until Micro.blog starts returning the created post
+	// there's no need to read the response :(
+	// bytes, err := ioutil.ReadAll(res.Body)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return &Post{}, nil
 }
 
@@ -195,8 +207,8 @@ func (a apiClient) PostPhoto(message string, photo Photo) (*Post, error) {
 	return &Post{}, nil
 }
 
-func (a aClient) getAndRead(url string) ([]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func (a aClient) getAndRead(endpoint string) ([]byte, error) {
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -217,13 +229,13 @@ func (a aClient) getAndRead(url string) ([]byte, error) {
 	return ioutil.ReadAll(res.Body)
 }
 
-func (a aClient) postAndRead(url string, payload interface{}) ([]byte, error) {
+func (a aClient) postAndRead(endpoint string, payload interface{}) ([]byte, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +256,8 @@ func (a aClient) postAndRead(url string, payload interface{}) ([]byte, error) {
 	return ioutil.ReadAll(res.Body)
 }
 
-func (a aClient) delete(url string) error {
-	req, err := http.NewRequest("DELETE", url, nil)
+func (a aClient) delete(endpoint string) error {
+	req, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {
 		return err
 	}
